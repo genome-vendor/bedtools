@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
     // input files
     string bedAFile;
     string bedBFile;
+    string disjointFile;
 
     // input arguments
     float overlapFraction = 1E-9;
@@ -52,6 +53,7 @@ int main(int argc, char* argv[]) {
     bool inputIsBam         = false;
     bool outputIsBam        = true;
     bool uncompressedBam    = false;
+    bool haveDisjointFile   = false;
     // check to see if we should print out some help
     if(argc <= 1) showHelp = true;
 
@@ -129,6 +131,13 @@ int main(int argc, char* argv[]) {
         else if (PARAMETER_CHECK("-v", 2, parameterLength)) {
             noHit = true;
         }
+        else if (PARAMETER_CHECK("-vf", 3, parameterLength)) {
+            if ((i+1) < argc) {
+                haveDisjointFile = true;
+                disjointFile = argv[i+1];
+                i++;
+            }
+        }
         else if (PARAMETER_CHECK("-s", 2, parameterLength)) {
             forceStrand = true;
         }
@@ -199,7 +208,7 @@ int main(int argc, char* argv[]) {
     if (!showHelp) {
 
         BedIntersect *bi = new BedIntersect(bedAFile, bedBFile, anyHit, writeA, writeB, writeOverlap,
-                                            writeAllOverlap, overlapFraction, noHit, writeCount, forceStrand,
+                                            writeAllOverlap, overlapFraction, noHit,disjointFile, writeCount, forceStrand,
                                             reciprocalFraction, obeySplits, inputIsBam, outputIsBam, uncompressedBam);
         delete bi;
         return 0;

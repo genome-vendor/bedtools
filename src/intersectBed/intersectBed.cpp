@@ -72,13 +72,14 @@ bool BedIntersect::processHits(const BED &a, const vector<BED> &hits, bool print
 */
 BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
                            bool writeA, bool writeB, bool writeOverlap, bool writeAllOverlap,
-                           float overlapFraction, bool noHit, bool writeCount, bool forceStrand,
+                           float overlapFraction, bool noHit, string disjointFile, bool writeCount, bool forceStrand,
                            bool reciprocal, bool obeySplits, bool bamInput, bool bamOutput, bool isUncompressedBam) {
 
     _bedAFile            = bedAFile;
     _bedBFile            = bedBFile;
     _anyHit              = anyHit;
     _noHit               = noHit;
+    _disjointFile        = disjointFile;
     _writeA              = writeA;
     _writeB              = writeB;
     _writeOverlap        = writeOverlap;
@@ -95,7 +96,13 @@ BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
     // create new BED file objects for A and B
     _bedA = new BedFile(bedAFile);
     _bedB = new BedFile(bedBFile);
-
+    if(_disjointFile.length()>0){
+        _disF.open(_disjointFile.c_str(), ios::out);
+        if ( !faOut ) {_
+            cerr << "Error: The requested disjoint output file (" << _disjointFile << ") could not be opened. Exiting!" << endl;
+            exit (1);
+        }
+    }
     if (_bamInput == false)
         IntersectBed();
     else

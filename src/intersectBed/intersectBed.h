@@ -48,6 +48,7 @@ private:
     //------------------------------------------------
     string _bedAFile;
     string _bedBFile;
+    string _disjointFile;
 
     bool  _writeA;            // should the original A feature be reported?
     bool  _writeB;            // should the original B feature be reported?
@@ -68,6 +69,7 @@ private:
 
     // instance of a bed file class.
     BedFile *_bedA, *_bedB;
+    ofstream _disF;
 
     //------------------------------------------------
     // private methods
