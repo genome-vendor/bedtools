@@ -128,15 +128,15 @@ int main(int argc, char* argv[]) {
         else if(PARAMETER_CHECK("-r", 2, parameterLength)) {
             reciprocalFraction = true;
         }
-        else if (PARAMETER_CHECK("-v", 2, parameterLength)) {
-            noHit = true;
-        }
         else if (PARAMETER_CHECK("-vf", 3, parameterLength)) {
             if ((i+1) < argc) {
                 haveDisjointFile = true;
                 disjointFile = argv[i+1];
                 i++;
             }
+        }
+        else if (PARAMETER_CHECK("-v", 2, parameterLength)) {
+            noHit = true;
         }
         else if (PARAMETER_CHECK("-s", 2, parameterLength)) {
             forceStrand = true;
@@ -208,7 +208,7 @@ int main(int argc, char* argv[]) {
     if (!showHelp) {
 
         BedIntersect *bi = new BedIntersect(bedAFile, bedBFile, anyHit, writeA, writeB, writeOverlap,
-                                            writeAllOverlap, overlapFraction, noHit,disjointFile, writeCount, forceStrand,
+                                            writeAllOverlap, overlapFraction, noHit, disjointFile, writeCount, forceStrand,
                                             reciprocalFraction, obeySplits, inputIsBam, outputIsBam, uncompressedBam);
         delete bi;
         return 0;
