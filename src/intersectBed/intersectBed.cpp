@@ -97,8 +97,8 @@ BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
     _bedA = new BedFile(bedAFile);
     _bedB = new BedFile(bedBFile);
     if(_disjointFile.length()>0){
-        _disF.open(_disjointFile.c_str(), ios::out);
-        if ( !faOut ) {_
+        disF.open(_disjointFile.c_str(), ios::out);
+        if ( !disF ) {
             cerr << "Error: The requested disjoint output file (" << _disjointFile << ") could not be opened. Exiting!" << endl;
             exit (1);
         }
@@ -107,8 +107,11 @@ BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
         IntersectBed();
     else
         IntersectBam(bedAFile);
-}
 
+    if(disF){
+        disF.close();
+    }
+}
 
 /*
     Destructor
@@ -174,6 +177,9 @@ void BedIntersect::ReportOverlapSummary(const BED &a, const int &numOverlapsFoun
         printf("%d\n", numOverlapsFound);
     }
     // -v  report iff there were no overlaps
+    else if ((disF) && (numOverlapsFound == 0)){
+        _bedA->reportBedNewLineFile(a,disF);
+    }
     else if (_noHit && (numOverlapsFound == 0)) {
         _bedA->reportBedNewLine(a);
     }
