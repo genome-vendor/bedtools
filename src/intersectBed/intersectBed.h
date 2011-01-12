@@ -35,7 +35,7 @@ public:
     // constructor
     BedIntersect(string bedAFile, string bedBFile, bool anyHit,
                                bool writeA, bool writeB, bool writeOverlap, bool writeAllOverlap,
-                               float overlapFraction, bool noHit, bool writeCount, bool forceStrand,
+                               float overlapFraction, bool noHit, string disjointFile, bool writeCount, bool forceStrand,
                                bool reciprocal, bool obeySplits, bool bamInput, bool bamOutput, bool isUncompressedBam);
 
     // destructor
@@ -69,7 +69,7 @@ private:
 
     // instance of a bed file class.
     BedFile *_bedA, *_bedB;
-    ofstream _disF;
+    ofstream disF;
 
     //------------------------------------------------
     // private methods
