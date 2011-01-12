@@ -794,6 +794,88 @@ public:
     }
 
 
+    /*
+        reportBedNewLineFile
+
+        Writes the _original_ BED entry with a NEWLINE
+        at the end of the line.
+        Works for BED3 - BED6.
+    */
+    template <typename T>
+    inline void reportBedNewLineFile(const T &bed, std::ofstream& outPut) {
+        //BED
+        char outFile[256];
+        if (_isGff == false && _isVcf == false) {
+            if (this->bedType == 3) {
+                sprintf (outFile,"%s\t%d\t%d\n", bed.chrom.c_str(), bed.start, bed.end);
+                outPut << outFile;
+            }
+            else if (this->bedType == 4) {
+                sprintf (outFile,"%s\t%d\t%d\t%s\n", bed.chrom.c_str(), bed.start, bed.end, bed.name.c_str());
+                outPut << outFile;
+            }
+            else if (this->bedType == 5) {
+                sprintf (outFile,"%s\t%d\t%d\t%s\t%s\n", bed.chrom.c_str(), bed.start, bed.end, bed.name.c_str(),
+                                                bed.score.c_str());
+                outPut << outFile;
+            }
+            else if (this->bedType == 6) {
+                sprintf (outFile,"%s\t%d\t%d\t%s\t%s\t%s\n", bed.chrom.c_str(), bed.start, bed.end, bed.name.c_str(),
+                                                    bed.score.c_str(), bed.strand.c_str());
+                outPut << outFile;
+            }
+            else if (this->bedType > 6) {
+                sprintf (outFile,"%s\t%d\t%d\t%s\t%s\t%s", bed.chrom.c_str(), bed.start, bed.end, bed.name.c_str(),
+                                                    bed.score.c_str(), bed.strand.c_str());
+                outPut << outFile;
+
+                vector<string>::const_iterator othIt = bed.otherFields.begin();
+                vector<string>::const_iterator othEnd = bed.otherFields.end();
+                for ( ; othIt != othEnd; ++othIt) {
+                    sprintf(outFile,"\t%s", othIt->c_str());
+                    outPut << outFile;
+                }
+                sprintf(outFile,"\n");
+                outPut << outFile;
+            }
+        }
+        // VCF
+        else if (_isGff == false && _isVcf == true) {
+            sprintf (outFile,"%s\t%d\t", bed.chrom.c_str(), bed.start+1);
+            outPut << outFile;
+
+            vector<string>::const_iterator othIt = bed.otherFields.begin();
+            vector<string>::const_iterator othEnd = bed.otherFields.end();
+            for ( ; othIt != othEnd; ++othIt) {
+                sprintf(outFile,"%s\t", othIt->c_str());
+                outPut << outFile;
+            }
+            sprintf(outFile,"\n");
+            outPut << outFile;
+        }
+        // GFF
+        else if (_isGff == true) {
+            // "GFF-8"
+            if (this->bedType == 8) {
+                sprintf (outFile,"%s\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n", bed.chrom.c_str(), bed.otherFields[0].c_str(),
+                                                                 bed.name.c_str(), bed.start+1, bed.end,
+                                                                 bed.score.c_str(), bed.strand.c_str(),
+                                                                 bed.otherFields[1].c_str());
+                outPut << outFile;
+            }
+            // "GFF-9"
+            else if (this->bedType == 9) {
+                sprintf (outFile,"%s\t%s\t%s\t%d\t%d\t%s\t%s\t%s\t%s\n", bed.chrom.c_str(), bed.otherFields[0].c_str(),
+                                                                 bed.name.c_str(), bed.start+1, bed.end,
+                                                                 bed.score.c_str(), bed.strand.c_str(),
+                                                                 bed.otherFields[1].c_str(), bed.otherFields[2].c_str());
+                outPut << outFile;
+            }
+        }
+    }
+
+
+
 
     /*
         reportBedRangeNewLine
