@@ -33,6 +33,7 @@ int main(int argc, char* argv[]) {
     string bedAFile;
     string bedBFile;
     string disjointFile;
+    string outputFile;
 
     // input arguments
     float overlapFraction = 1E-9;
@@ -53,7 +54,6 @@ int main(int argc, char* argv[]) {
     bool inputIsBam         = false;
     bool outputIsBam        = true;
     bool uncompressedBam    = false;
-    bool haveDisjointFile   = false;
     // check to see if we should print out some help
     if(argc <= 1) showHelp = true;
 
@@ -130,8 +130,13 @@ int main(int argc, char* argv[]) {
         }
         else if (PARAMETER_CHECK("-vf", 3, parameterLength)) {
             if ((i+1) < argc) {
-                haveDisjointFile = true;
                 disjointFile = argv[i+1];
+                i++;
+            }
+        }
+        else if (PARAMETER_CHECK("-of", 3, parameterLength)) {
+            if ((i+1) < argc) {
+                outputFile = argv[i+1];
                 i++;
             }
         }
@@ -203,13 +208,17 @@ int main(int argc, char* argv[]) {
         cerr << endl << "*****" << endl << "*****ERROR: Request either -u OR -wo, not both." << endl << "*****" << endl;
         showHelp = true;
     }
+    /*if (outputFile.length() && disjointFile.length()){
+        cerr << endl << "*****" << endl << "*****ERROR: Request either -of OR -vf, not both." << endl << "*****" << endl;
+        showHelp = true;
+    }*/
 
 
     if (!showHelp) {
 
         BedIntersect *bi = new BedIntersect(bedAFile, bedBFile, anyHit, writeA, writeB, writeOverlap,
                                             writeAllOverlap, overlapFraction, noHit, disjointFile, writeCount, forceStrand,
-                                            reciprocalFraction, obeySplits, inputIsBam, outputIsBam, uncompressedBam);
+                                            reciprocalFraction, obeySplits, inputIsBam, outputIsBam, uncompressedBam, outputFile);
         delete bi;
         return 0;
     }

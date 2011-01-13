@@ -36,7 +36,7 @@ public:
     BedIntersect(string bedAFile, string bedBFile, bool anyHit,
                                bool writeA, bool writeB, bool writeOverlap, bool writeAllOverlap,
                                float overlapFraction, bool noHit, string disjointFile, bool writeCount, bool forceStrand,
-                               bool reciprocal, bool obeySplits, bool bamInput, bool bamOutput, bool isUncompressedBam);
+                               bool reciprocal, bool obeySplits, bool bamInput, bool bamOutput, bool isUncompressedBam, string outputFile);
 
     // destructor
     ~BedIntersect(void);
@@ -49,6 +49,7 @@ private:
     string _bedAFile;
     string _bedBFile;
     string _disjointFile;
+    string _outputFile;
 
     bool  _writeA;            // should the original A feature be reported?
     bool  _writeB;            // should the original B feature be reported?
@@ -69,7 +70,8 @@ private:
 
     // instance of a bed file class.
     BedFile *_bedA, *_bedB;
-    ofstream disF;
+    std::ostream *disOut;
+    std::ostream *outFile;
 
     //------------------------------------------------
     // private methods

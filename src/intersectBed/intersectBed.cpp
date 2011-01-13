@@ -73,7 +73,7 @@ bool BedIntersect::processHits(const BED &a, const vector<BED> &hits, bool print
 BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
                            bool writeA, bool writeB, bool writeOverlap, bool writeAllOverlap,
                            float overlapFraction, bool noHit, string disjointFile, bool writeCount, bool forceStrand,
-                           bool reciprocal, bool obeySplits, bool bamInput, bool bamOutput, bool isUncompressedBam) {
+                           bool reciprocal, bool obeySplits, bool bamInput, bool bamOutput, bool isUncompressedBam, string outputFile) {
 
     _bedAFile            = bedAFile;
     _bedBFile            = bedBFile;
@@ -92,14 +92,31 @@ BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
     _bamInput            = bamInput;
     _bamOutput           = bamOutput;
     _isUncompressedBam   = isUncompressedBam;
+    _outputFile          = outputFile;
 
     // create new BED file objects for A and B
     _bedA = new BedFile(bedAFile);
     _bedB = new BedFile(bedBFile);
+    ofstream disF,outF;
     if(_disjointFile.length()>0){
-        disF.open(_disjointFile.c_str(), ios::out);
-        if ( !disF ) {
+        if(_disjointFile == "stdout"){
+            disOut = &cout;
+        }
+        else {
+            disF.open(_disjointFile.c_str(), ios::out);
+            disOut = &disF;
+        }
+        if ( !disOut ) {
             cerr << "Error: The requested disjoint output file (" << _disjointFile << ") could not be opened. Exiting!" << endl;
+            exit (1);
+        }
+    }
+
+    if(_outputFile.length()>0){
+        outF.open(_outputFile.c_str(), ios::out);
+        outFile = &outF;
+        if ( !outFile ) {
+            cerr << "Error: The requested output file (" << _outputFile << ") could not be opened. Exiting!" << endl;
             exit (1);
         }
     }
@@ -110,6 +127,9 @@ BedIntersect::BedIntersect(string bedAFile, string bedBFile, bool anyHit,
 
     if(disF){
         disF.close();
+    }
+    if(outF){
+        outF.close();
     }
 }
 
@@ -169,7 +189,12 @@ void BedIntersect::ReportOverlapDetail(const int &overlapBases, const BED &a, co
 void BedIntersect::ReportOverlapSummary(const BED &a, const int &numOverlapsFound) {
     // -u  just report the fact that there was >= 1 overlaps
     if (_anyHit && (numOverlapsFound >= 1)) {
-        _bedA->reportBedNewLine(a);
+        if(outFile){
+            _bedA->reportBedNewLineFile(a,*outFile);
+        }
+        else {
+            _bedA->reportBedNewLine(a);
+        }
     }
     // -c  report the total number of features overlapped in B
     else if (_writeCount) {
@@ -177,8 +202,8 @@ void BedIntersect::ReportOverlapSummary(const BED &a, const int &numOverlapsFoun
         printf("%d\n", numOverlapsFound);
     }
     // -v  report iff there were no overlaps
-    else if ((disF) && (numOverlapsFound == 0)){
-        _bedA->reportBedNewLineFile(a,disF);
+    else if ((disOut) && (numOverlapsFound == 0)){
+        _bedA->reportBedNewLineFile(a,*disOut);
     }
     else if (_noHit && (numOverlapsFound == 0)) {
         _bedA->reportBedNewLine(a);

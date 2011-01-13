@@ -802,7 +802,7 @@ public:
         Works for BED3 - BED6.
     */
     template <typename T>
-    inline void reportBedNewLineFile(const T &bed, std::ofstream& outPut) {
+    inline void reportBedNewLineFile(const T &bed, std::ostream& outPut) {
         //BED
         char outFile[256];
         if (_isGff == false && _isVcf == false) {
