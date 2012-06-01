@@ -13,28 +13,81 @@
 #include "mergeBed.h"
 
 
-void ReportMergedNames(const map<string, bool> &names) {
-    unsigned int n = 0;
-    map<string, bool>::const_iterator nameItr = names.begin();
-    map<string, bool>::const_iterator nameEnd = names.end();
-    for (; nameItr != nameEnd; ++nameItr) {
-        if (n < (names.size() - 1)) {cout << nameItr->first << ";";}
-        else {cout << nameItr->first;}
-        n++;
+
+void BedMerge::ReportMergedNames(const vector<string> &names) {
+    if (names.size() > 0) {
+        printf("\t");
+        vector<string>::const_iterator nameItr = names.begin();
+        vector<string>::const_iterator nameEnd = names.end();
+        for (; nameItr != nameEnd; ++nameItr) {
+            if (nameItr < (nameEnd - 1))
+                cout << *nameItr << ";";
+            else
+                cout << *nameItr;
+        }
+    }
+    else {
+        cerr << endl 
+             << "*****" << endl 
+             << "*****ERROR: No names found to report for the -names option. Exiting." << endl 
+             << "*****" << endl;
+        exit(1);
+    }
+}
+
+
+void BedMerge::ReportMergedScores(const vector<string> &scores) {
+    
+    // setup a VectorOps instances for the list of scores.
+    // VectorOps methods used for each possible operation.
+    VectorOps vo(scores);
+    std::stringstream buffer;
+    if (scores.size() > 0) {
+        if (_scoreOp == "sum")
+            buffer << setprecision (PRECISION) << vo.GetSum();
+        else if (_scoreOp == "min")
+            buffer << setprecision (PRECISION) << vo.GetMin();
+        else if (_scoreOp == "max")
+            buffer << setprecision (PRECISION) << vo.GetMax();
+        else if (_scoreOp == "mean")
+            buffer << setprecision (PRECISION) << vo.GetMean();
+        else if (_scoreOp == "median")
+            buffer << setprecision (PRECISION) << vo.GetMedian();
+        else if (_scoreOp == "mode")
+            buffer << setprecision (PRECISION) << vo.GetMode();
+        else if (_scoreOp == "antimode")
+            buffer << setprecision (PRECISION) << vo.GetAntiMode();
+        else if (_scoreOp == "collapse")
+            buffer << setprecision (PRECISION) << vo.GetCollapse();
+        cout << "\t" << buffer.str();
+    }
+    else {        
+        cerr << endl 
+             << "*****" << endl 
+             << "*****ERROR: No scores found to report for the -scores option. Exiting." << endl 
+             << "*****" << endl;
+        exit(1);
     }
 }
 
 // ===============
 // = Constructor =
 // ===============
-BedMerge::BedMerge(string &bedFile, bool &numEntries, int &maxDistance, bool &forceStrand, bool &reportNames) {
-
-    _bedFile = bedFile;
-    _numEntries = numEntries;
-    _maxDistance = -1 * maxDistance;
-    _forceStrand = forceStrand;
-    _reportNames = reportNames;
-
+BedMerge::BedMerge(string &bedFile, 
+                   bool numEntries, 
+                   int  maxDistance, 
+                   bool forceStrand, 
+                   bool reportNames, 
+                   bool reportScores,
+                   const string &scoreOp) :
+    _bedFile(bedFile),
+    _numEntries(numEntries),
+    _forceStrand(forceStrand),
+    _reportNames(reportNames),
+    _reportScores(reportScores),
+    _scoreOp(scoreOp),
+    _maxDistance(maxDistance)
+{
     _bed = new BedFile(bedFile);
 
     if (_forceStrand == false)
@@ -51,121 +104,162 @@ BedMerge::~BedMerge(void) {
 }
 
 
+// ===============================================
+// Convenience method for reporting merged blocks
+// ================================================
+void BedMerge::Report(string chrom, int start, int end, 
+                      const vector<string> &names, const vector<string> &scores, int mergeCount) 
+{
+    // ARQ: removed to force all output to be zero-based, BED format, reagrdless of input type
+    //if (_bed->isZeroBased == false) {start++;}
+    
+    printf("%s\t%d\t%d", chrom.c_str(), start, end);
+    // just the merged intervals
+    if (_numEntries == false && _reportNames == false && _reportScores == false) {
+        printf("\n");
+    }
+    // merged intervals and counts    
+    else if (_numEntries == true && _reportNames == false && _reportScores == false) {
+        printf("\t%d\n", mergeCount);
+    }
+    // merged intervals, counts, and scores
+    else if (_numEntries == true && _reportNames == false && _reportScores == true) {
+        printf("\t%d", mergeCount);
+        ReportMergedScores(scores);
+        printf("\n");
+    }
+    // merged intervals, counts, and names
+    else if (_numEntries == true && _reportNames == true && _reportScores == false) {
+        ReportMergedNames(names);
+        printf("\t%d\n", mergeCount);
+    }
+    // merged intervals, counts, names, and scores
+    else if (_numEntries == true && _reportNames == true && _reportScores == true) {
+        ReportMergedNames(names);
+        ReportMergedScores(scores);
+        printf("\t%d\n", mergeCount);
+    }
+    // merged intervals and names        
+    else if (_numEntries == false && _reportNames == true && _reportScores == false) {
+        ReportMergedNames(names);
+        printf("\n");
+    }
+    // merged intervals and scores        
+    else if (_numEntries == false && _reportNames == false && _reportScores == true) {
+        ReportMergedScores(scores);
+        printf("\n");
+    }
+    // merged intervals, names, and scores        
+    else if (_numEntries == false && _reportNames == true && _reportScores == true) {
+        ReportMergedNames(names);
+        ReportMergedScores(scores);
+        printf("\n");
+    }
+}
+
+
+// =========================================================
+// Convenience method for reporting merged blocks by strand
+// =========================================================
+void BedMerge::ReportStranded(string chrom, int start, int end, 
+                              const vector<string> &names, const vector<string> &scores,
+                              int mergeCount, string strand) 
+{
+    // ARQ: removed to force all output to be zero-based, BED format, reagrdless of input type
+    //if (_bed->isZeroBased == false) {start++;}
+    
+    printf("%s\t%d\t%d", chrom.c_str(), start, end);
+    // just the merged intervals
+    if (_numEntries == false && _reportNames == false && _reportScores == false) {
+        printf("\t%s\n", strand.c_str());
+    }
+    // merged intervals and counts    
+    else if (_numEntries == true && _reportNames == false && _reportScores == false) {
+        printf("\t%d\t%s\n", mergeCount, strand.c_str());
+    }
+    // merged intervals, counts, and scores
+    else if (_numEntries == true && _reportNames == false && _reportScores == true) {
+        printf("\t%d", mergeCount);
+        ReportMergedScores(scores);
+        printf("\t%s\n", strand.c_str());
+    }
+    // merged intervals, counts, and names
+    else if (_numEntries == true && _reportNames == true && _reportScores == false) {
+        ReportMergedNames(names);
+        printf("\t%d\t%s", mergeCount, strand.c_str());
+        printf("\n");
+    }
+    // merged intervals, counts, names, and scores
+    else if (_numEntries == true && _reportNames == true && _reportScores == true) {
+        ReportMergedNames(names);
+        ReportMergedScores(scores);
+        printf("\t%s\t%d", strand.c_str(), mergeCount);
+        printf("\n");
+    }
+    // merged intervals and names        
+    else if (_numEntries == false && _reportNames == true && _reportScores == false) {
+        ReportMergedNames(names);
+        printf("\t%s\n", strand.c_str());
+    }
+    // merged intervals and scores        
+    else if (_numEntries == false && _reportNames == false && _reportScores == true) {
+        ReportMergedScores(scores);
+        printf("\t%s\n", strand.c_str());
+    }
+    // merged intervals, names, and scores        
+    else if (_numEntries == false && _reportNames == true && _reportScores == true) {
+        ReportMergedNames(names);
+        ReportMergedScores(scores);
+        printf("\t%s\n", strand.c_str());
+    }
+}
+
+
 // =====================================================
 // = Merge overlapping BED entries into a single entry =
 // =====================================================
 void BedMerge::MergeBed() {
-
-    // load the "B" bed file into a map so
-    // that we can easily compare "A" to it for overlaps
-    _bed->loadBedFileIntoMapNoBin();
-
-    // loop through each chromosome and merge their BED entries
-    for (masterBedMapNoBin::iterator m = _bed->bedMapNoBin.begin(); m != _bed->bedMapNoBin.end(); ++m) {
-
-        // bedList is already sorted by start position.
-        vector<BED> bedList = m->second;
-
-        CHRPOS minStart = INT_MAX;
-        CHRPOS maxEnd = 0;
-        bool OIP = false;       // OIP = Overlap In Progress.  Lame, I realize.
-        int prev = -1;
-        unsigned int curr = 0;
-        int mergeCount = 1;
-        map<string, bool> names;
-
-        // loop through the BED entries for this chromosome
-        // and look for overlaps
-        for (curr = 0; curr < bedList.size(); ++curr) {
-
-            // make sure prev points to an actual element
-            if (prev < 0) {
-                prev = curr;
-                continue;
-            }
-
-            // Is there an overlap between the current and previous entries?
-            if ( overlaps(bedList[prev].start, bedList[prev].end,
-                        bedList[curr].start, bedList[curr].end) >= _maxDistance) {
-                OIP = true;
-                mergeCount++;
-                minStart = min(bedList[prev].start, min(minStart, bedList[curr].start));
-                maxEnd = max(bedList[prev].end, max(maxEnd, bedList[curr].end));
-
-                names[bedList[prev].name] = true;
-                names[bedList[curr].name] = true;
-            }
-            else if ( overlaps(minStart, maxEnd,
-                            bedList[curr].start, bedList[curr].end) >= _maxDistance) {
-                mergeCount++;
-                minStart = min(minStart, bedList[curr].start);
-                maxEnd = max(maxEnd, bedList[curr].end);
-                names[bedList[curr].name] = true;
-            }
-            else {
-                // was there an overlap befor the current entry broke it?
-                if (OIP) {
-                    if (_numEntries) {
-                        cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t" << mergeCount << endl;
-                    }
-                    else if (_reportNames) {
-                        cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t";
-                        ReportMergedNames(names);
-                        cout << endl;
-                    }
-                    else {
-                        cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << endl;
-                    }
-                }
-                else {
-                    if (_numEntries) {
-                        cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << mergeCount << endl;
-                    }
-                    else if (_reportNames) {
-                        cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << bedList[prev].name << endl;
-                    }
-                    else {
-                        cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << endl;
-                    }
-                }
-
-                // reset things for the next overlapping "block"
-                OIP = false;
+    int mergeCount = 1;
+    vector<string> names;
+    vector<string> scores;
+    int start = -1;
+    int end   = -1;
+    BED prev, curr;
+    
+    _bed->Open();
+    while (_bed->GetNextBed(curr, true)) { // true = force sorted intervals
+        if (_bed->_status != BED_VALID)
+            continue;            
+        // new block, no overlap
+        if ( (((int) curr.start - end) > _maxDistance) || (curr.chrom != prev.chrom)) {
+            if (start >= 0) {
+                Report(prev.chrom, start, end, names, scores, mergeCount);
+                // reset
                 mergeCount = 1;
-                minStart = INT_MAX;
-                maxEnd = 0;
-
                 names.clear();
-                names[bedList[curr].name] = true;
+                scores.clear();
             }
-            prev = curr;
+            start = curr.start;
+            end   = curr.end;
+            if (!curr.name.empty())
+                names.push_back(curr.name);
+            if (!curr.score.empty())
+            scores.push_back(curr.score);
         }
-
-        // clean up based on the last entry for the current chromosome
-        if (OIP) {
-            if (_numEntries) {
-                cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t" << mergeCount << endl;
-            }
-            else if (_reportNames) {
-                cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t";
-                ReportMergedNames(names);
-                cout << endl;
-            }
-            else {
-                cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << endl;
-            }
-        }
+        // same block, overlaps
         else {
-            if (_numEntries) {
-                cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end  << "\t" << mergeCount << endl;
-            }
-            else if (_reportNames) {
-                cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << bedList[prev].name << endl;
-            }
-            else {
-                cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << endl;
-            }
+            if ((int) curr.end > end) 
+                end = curr.end;
+            if (!curr.name.empty())
+                names.push_back(curr.name);
+            if (!curr.score.empty())
+                scores.push_back(curr.score);
+            mergeCount++;
         }
+        prev = curr;
+    }
+    if (start >= 0) {
+        Report(prev.chrom, start, end, names, scores, mergeCount);
     }
 }
 
@@ -183,131 +277,53 @@ void BedMerge::MergeBedStranded() {
     masterBedMapNoBin::const_iterator m    = _bed->bedMapNoBin.begin();
     masterBedMapNoBin::const_iterator mEnd = _bed->bedMapNoBin.end();
     for (; m != mEnd; ++m) {
+        
         // bedList is already sorted by start position.
-        vector<BED> bedList = m->second;
+        string chrom        = m->first;
 
         // make a list of the two strands to merge separately.
         vector<string> strands(2);
         strands[0] = "+";
         strands[1] = "-";
-
         // do two passes, one for each strand.
         for (unsigned int s = 0; s < strands.size(); s++) {
-
-            CHRPOS minStart = INT_MAX;
-            CHRPOS maxEnd = 0;
-            bool OIP = false;       // OIP = Overlap In Progress.  Lame, I realize.
-            int prev = -1;
-            unsigned int curr = 0;
             int mergeCount = 1;
             int numOnStrand = 0;
-            map<string, bool> names;
+            vector<string> names;
+            vector<string> scores;
 
-            // loop through the BED entries for this chromosome
-            // and look for overlaps
-            for (curr = 0; curr < bedList.size(); ++curr) {
-
+            // merge overlapping features for this chromosome.
+            int start = -1;
+            int end   = -1;
+            vector<BED>::const_iterator bedItr = m->second.begin();
+            vector<BED>::const_iterator bedEnd = m->second.end();
+            for (; bedItr != bedEnd; ++bedItr) {
                 // if forcing strandedness, move on if the hit
                 // is not on the current strand.
-
-                if (bedList[curr].strand != strands[s]) {
-                    continue;       // continue force the next iteration of the for loop.
+                if (bedItr->strand != strands[s]) { continue; }
+                else { numOnStrand++; }
+                if ( (((int) bedItr->start - end) > _maxDistance) || (end < 0)) {
+                    if (start >= 0) {
+                        ReportStranded(chrom, start, end, names, scores, mergeCount, strands[s]);
+                        // reset
+                        mergeCount = 1;
+                        names.clear();
+                        scores.clear();
+                    }
+                    start = bedItr->start;
+                    end   = bedItr->end;
+                    if (!bedItr->name.empty())  names.push_back(bedItr->name);
+                    if (!bedItr->score.empty()) scores.push_back(bedItr->score);
                 }
                 else {
-                    numOnStrand++;
-                }
-
-                // make sure prev points to an actual element on the
-                // current strand
-                if (prev < 0) {
-                    if (bedList[curr].strand == strands[s]) {
-                        prev = curr;
-                    }
-                    continue;
-                }
-
-                if ( overlaps(bedList[prev].start, bedList[prev].end,
-                            bedList[curr].start, bedList[curr].end) >= _maxDistance) {
-                    OIP = true;
+                    if ((int) bedItr-> end > end) end = bedItr->end;
                     mergeCount++;
-                    minStart = min(bedList[prev].start, min(minStart, bedList[curr].start));
-                    maxEnd = max(bedList[prev].end, max(maxEnd, bedList[curr].end));
-
-                    names[bedList[prev].name] = true;
-                    names[bedList[curr].name] = true;
-                }
-                else if ( overlaps(minStart, maxEnd,
-                                bedList[curr].start, bedList[curr].end) >= _maxDistance) {
-                    mergeCount++;
-                    minStart = min(minStart, bedList[curr].start);
-                    maxEnd = max(maxEnd, bedList[curr].end);
-                    names[bedList[curr].name] = true;
-                }
-                else {
-
-                    // was there an overlap before the current entry broke it?
-                    if (OIP) {
-                        if (_numEntries) {
-                            cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t" << mergeCount << "\t" << strands[s] << endl;
-                        }
-                        else if (_reportNames) {
-                            cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t";
-                            ReportMergedNames(names);
-                            cout << "\t" << strands[s] << endl;
-                        }
-                        else {
-                            cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t" << strands[s] << endl;
-                        }
-                    }
-                    else {
-                        if ((_numEntries) && (numOnStrand > 0)) {
-                            cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << mergeCount << "\t" << strands[s] << endl;
-                        }
-                        else if (_reportNames) {
-                            cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << bedList[prev].name << "\t" << strands[s] << endl;
-                        }
-                        else if (numOnStrand > 0) {
-                            cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << strands[s] << endl;
-                        }
-                    }
-
-                    // reset things for the next overlapping "block"
-                    OIP = false;
-                    mergeCount = 1;
-                    minStart = INT_MAX;
-                    maxEnd = 0;
-                    names.clear();
-
-                    // add the name of the current element in prep for the next block
-                    names[bedList[curr].name] = true;
-                }
-                prev = curr;
-            }
-
-            // clean up based on the last entry for the current chromosome
-            if (OIP) {
-                if (_numEntries) {
-                    cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t" << mergeCount << "\t" << strands[s] << endl;
-                }
-                else if (_reportNames) {
-                    cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t";
-                    ReportMergedNames(names);
-                    cout << "\t" << strands[s] << endl;
-                }
-                else {
-                    cout << bedList[prev].chrom << "\t" << minStart << "\t" << maxEnd << "\t" << strands[s] << endl;
+                    if (!bedItr->name.empty())  names.push_back(bedItr->name);
+                    if (!bedItr->score.empty()) scores.push_back(bedItr->score);
                 }
             }
-            else {
-                if ((_numEntries) && (numOnStrand > 0)) {
-                    cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << mergeCount << "\t" << strands[s] << endl;
-                }
-                else if ((_reportNames) && (numOnStrand > 0)) {
-                    cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << bedList[prev].name << "\t" << strands[s] << endl;
-                }
-                else if (numOnStrand > 0) {
-                    cout << bedList[prev].chrom << "\t" << bedList[prev].start << "\t" << bedList[prev].end << "\t" << strands[s] << endl;
-                }
+            if (start >= 0) {
+                ReportStranded(chrom, start, end, names, scores, mergeCount, strands[s]);
             }
         }
     }

@@ -14,6 +14,7 @@
 
 #include "bedFile.h"
 #include "sequenceUtils.h"
+#include "Fasta.h"
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -28,14 +29,14 @@ class Bed2Fa {
 public:
 
     // constructor
-    Bed2Fa(bool &useName, string &dbFile, string &bedFile, string &fastaOutFile,
-        bool &useFasta, bool &useStrand);
+    Bed2Fa(bool useName, const string &dbFile, const string &bedFile, const string &fastaOutFile,
+        bool useFasta, bool useStrand);
 
     // destructor
     ~Bed2Fa(void);
 
     void ExtractDNA();
-    void ReportDNA(const BED &bed, const string &currDNA, const string &currChrom);
+    void ReportDNA(const BED &bed, string &dna);
 
 
 private:

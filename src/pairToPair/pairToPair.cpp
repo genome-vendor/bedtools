@@ -72,10 +72,10 @@ void PairToPair::FindOverlaps(const BEDPE &a) {
     vector<MATE> hitsA1B1, hitsA1B2, hitsA2B1, hitsA2B2;
 
     // add the appropriate slop to the starts and ends
-    CHRPOS start1 = a.start1;
-    CHRPOS end1   = a.end1;
-    CHRPOS start2 = a.start2;
-    CHRPOS end2   = a.end2;
+    int start1 = a.start1;
+    int end1   = a.end1;
+    int start2 = a.start2;
+    int end2   = a.end2;
 
     if (_strandedSlop == true) {
         if (a.strand1 == "+")
@@ -88,8 +88,8 @@ void PairToPair::FindOverlaps(const BEDPE &a) {
             start2 -= _slop;
     }
     else {
-        start1 -= _slop;
-        start2 -= _slop;
+        (start1 - _slop) >= 0 ? start1 -= _slop : start1 = 0;
+        (start2 - _slop) >= 0 ? start2 -= _slop : start2 = 0;
         end1   += _slop;
         end2   += _slop;
     }
@@ -103,16 +103,28 @@ void PairToPair::FindOverlaps(const BEDPE &a) {
     unsigned int matchCount1 = (hitsA1B1.size() + hitsA2B2.size());
     unsigned int matchCount2 = (hitsA2B1.size() + hitsA1B2.size());
 
-
+    
     // report the fact that no hits were found iff _searchType is neither.
     if ((matchCount1 == 0) && (matchCount2 == 0) && (_searchType == "neither")) {
         _bedA->reportBedPENewLine(a);
     }
-    else if (_searchType == "both") {
+    else if (_searchType == "both")  {
+        bool found1 = false;
+        bool found2 = false;
         if ((hitsA1B1.size() > 0) || (hitsA2B2.size() > 0))
-            FindHitsOnBothEnds(a, hitsA1B1, hitsA2B2);
+            found1 = FindHitsOnBothEnds(a, hitsA1B1, hitsA2B2);
         if ((hitsA2B1.size() > 0) || (hitsA1B2.size() > 0))
-            FindHitsOnBothEnds(a, hitsA2B1, hitsA1B2);
+            found2 = FindHitsOnBothEnds(a, hitsA2B1, hitsA1B2);
+    }
+    else if (_searchType == "notboth")  {
+        bool found1 = false;
+        bool found2 = false;
+        if ((hitsA1B1.size() > 0) || (hitsA2B2.size() > 0))
+            found1 = FindHitsOnBothEnds(a, hitsA1B1, hitsA2B2);
+        if ((hitsA2B1.size() > 0) || (hitsA1B2.size() > 0))
+            found2 = FindHitsOnBothEnds(a, hitsA2B1, hitsA1B2);
+        if (found1 == false && found2 == false)
+            _bedA->reportBedPENewLine(a);
     }
     else if (_searchType == "either") {
         FindHitsOnEitherEnd(a, hitsA1B1, hitsA2B2);
@@ -121,7 +133,7 @@ void PairToPair::FindOverlaps(const BEDPE &a) {
 }
 
 
-void PairToPair::FindHitsOnBothEnds(const BEDPE &a, const vector<MATE> &qualityHitsEnd1,
+bool PairToPair::FindHitsOnBothEnds(const BEDPE &a, const vector<MATE> &qualityHitsEnd1,
                                     const vector<MATE> &qualityHitsEnd2) {
 
     map<unsigned int, vector<MATE>, less<int> > hitsMap;
@@ -133,9 +145,13 @@ void PairToPair::FindHitsOnBothEnds(const BEDPE &a, const vector<MATE> &qualityH
         hitsMap[h->lineNum].push_back(*h);
     }
 
-    for (map<unsigned int, vector<MATE>, less<unsigned int> >::iterator m = hitsMap.begin(); m != hitsMap.end(); ++m) {
-        if (m->second.size() == 2) {
 
+    bool bothFound = false;
+    for (map<unsigned int, vector<MATE>, less<unsigned int> >::iterator m = hitsMap.begin(); m != hitsMap.end(); ++m) {
+        
+        // hits on both sides
+        if (m->second.size() >= 2) {
+            bothFound = true;
             MATE b1 = m->second[0];
             MATE b2 = m->second[1];
 
@@ -145,12 +161,13 @@ void PairToPair::FindHitsOnBothEnds(const BEDPE &a, const vector<MATE> &qualityH
                                                                    b2.bed.chrom.c_str(), b2.bed.start, b2.bed.end,
                                                                    b1.bed.name.c_str(), b1.bed.score.c_str(),
                                                                    b1.bed.strand.c_str(), b2.bed.strand.c_str());
-                for (size_t i = 0; i < b1.bed.otherFields.size(); ++i)
-                    printf("\t%s", b1.bed.otherFields[i].c_str());
+                for (size_t i = 0; i < b1.bed.other_idxs.size(); ++i)
+                    printf("\t%s", b1.bed.fields[b1.bed.other_idxs[i]].c_str());
                 printf("\n");
             }
         }
     }
+    return bothFound;
 }
 
 
@@ -178,8 +195,8 @@ void PairToPair::FindHitsOnEitherEnd(const BEDPE &a, const vector<MATE> &quality
                                                                    b2.bed.chrom.c_str(), b2.bed.start, b2.bed.end,
                                                                    b1.bed.name.c_str(), b1.bed.score.c_str(),
                                                                    b1.bed.strand.c_str(), b2.bed.strand.c_str());
-                for (size_t i = 0; i < b1.bed.otherFields.size(); ++i)
-                    printf("\t%s", b1.bed.otherFields[i].c_str());
+                for (size_t i = 0; i < b1.bed.other_idxs.size(); ++i)
+                    printf("\t%s", b1.bed.fields[b1.bed.other_idxs[i]].c_str());
                 printf("\n");
             }
             else {
@@ -190,8 +207,8 @@ void PairToPair::FindHitsOnEitherEnd(const BEDPE &a, const vector<MATE> &quality
                                                                    b1.mate->bed.chrom.c_str(), b1.mate->bed.start, b1.mate->bed.end,
                                                                    b1.bed.name.c_str(), b1.bed.score.c_str(),
                                                                    b1.bed.strand.c_str(), b1.mate->bed.strand.c_str());
-                for (size_t i = 0; i < b1.bed.otherFields.size(); ++i)
-                    printf("\t%s", b1.bed.otherFields[i].c_str());
+                for (size_t i = 0; i < b1.bed.other_idxs.size(); ++i)
+                    printf("\t%s", b1.bed.fields[b1.bed.other_idxs[i]].c_str());
                 printf("\n");
             }
         }
