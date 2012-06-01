@@ -1,0 +1,13 @@
+Source: bedtools2.16.2
+Section: science
+Priority: optional
+Build-Depends: debhelper (>= 7), zlib1g-dev
+Maintainer: Aaron <aaronquinlan@gmail.com>
+Homepage: https://code.google.com/p/bedtools/
+Vcs-Git: https://github.com/arq5x/bedtools.git
+
+Package: bedtools2.16.2
+Architecture: amd64
+Depends: zlib1g
+Description: BEDTools is a collection of utilities for comparing, summarizing, and 
+ intersecting genomic features in BED, GTF/GFF, VCF and BAM formats.
